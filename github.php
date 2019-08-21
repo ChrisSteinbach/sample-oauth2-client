@@ -1,7 +1,11 @@
 <?php
+
 // Fill these out with the values you got from Github
 $githubClientID = '';
 $githubClientSecret = '';
+$proxy = '';
+$proxyauth = 'username:password';
+
 
 // This is the URL we'll send the user to first to get their authorization
 $authorizeURL = 'https://github.com/login/oauth/authorize';
@@ -13,7 +17,9 @@ $tokenURL = 'https://github.com/login/oauth/access_token';
 $apiURLBase = 'https://api.github.com/';
 
 // The URL for this script, used as the redirect URL
-$baseURL = 'https://' . $_SERVER['SERVER_NAME'] . $_SERVER['PHP_SELF'];
+$baseURL = 'http://' . $_SERVER['SERVER_NAME'] . $_SERVER['SERVER_PORT'] . $_SERVER['PHP_SELF'];
+
+$redirURL = 'http://' . $_SERVER['SERVER_NAME'] . $_SERVER['SERVER_PORT'] . "/callback";
 
 // Start a session so we have a place to store things between redirects
 session_start();
@@ -23,20 +29,20 @@ session_start();
 // to Github's authorization page
 if(isset($_GET['action']) && $_GET['action'] == 'login') {
   unset($_SESSION['access_token']);
-
   // Generate a random hash and store in the session
   $_SESSION['state'] = bin2hex(random_bytes(16));
 
   $params = array(
     'response_type' => 'code',
     'client_id' => $githubClientID,
-    'redirect_uri' => $baseURL,
+    'redirect_uri' => $redirURL,
     'scope' => 'user public_repo',
     'state' => $_SESSION['state']
   );
 
   // Redirect the user to Github's authorization page
   header('Location: '.$authorizeURL.'?'.http_build_query($params));
+
   die();
 }
 
@@ -63,7 +69,7 @@ if(isset($_GET['code'])) {
     'grant_type' => 'authorization_code',
     'client_id' => $githubClientID,
     'client_secret' => $githubClientSecret,
-    'redirect_uri' => $baseURL,
+    'redirect_uri' => $redirURL,
     'code' => $_GET['code']
   ));
   $_SESSION['access_token'] = $token['access_token'];
@@ -107,6 +113,9 @@ if(!isset($_GET['action'])) {
 // the appropriate headers GitHub expects, and decoding the JSON response
 function apiRequest($url, $post=FALSE, $headers=array()) {
   $ch = curl_init($url);
+
+  curl_setopt($ch, CURLOPT_PROXY, $proxy);
+  curl_setopt($ch, CURLOPT_PROXYUSERPWD, $proxyauth);
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
 
   if($post)
@@ -123,5 +132,7 @@ function apiRequest($url, $post=FALSE, $headers=array()) {
   curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
   $response = curl_exec($ch);
+
   return json_decode($response, true);
 }
+
