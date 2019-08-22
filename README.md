@@ -3,3 +3,5 @@
 Sample OAuth 2.0 clients using the GitHub and Google APIs
 
 Read more info in the book [OAuth 2.0 Simplified](https://oauth2simplified.com)
+
+NOTE: Forked code contains modifications to help test locally behind an HTTP proxy.
